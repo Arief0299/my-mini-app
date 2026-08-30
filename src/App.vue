@@ -17,6 +17,9 @@ const {
   lastError,
   lastTxHash,
 
+  providerConnected,
+  providerNetwork,
+
   message,
   signature,
   publicKey,
@@ -66,6 +69,9 @@ const page = ref<"wallet" | "game">("wallet");
       :debugStatus="debugStatus"
       :lastError="lastError"
       :lastTxHash="lastTxHash"
+
+      :providerConnected="providerConnected"
+      :providerNetwork="providerNetwork"
 
       :message="message"
       :signature="signature"

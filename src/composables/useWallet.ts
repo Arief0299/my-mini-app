@@ -4,6 +4,7 @@ import {
   getAccounts,
   getConsensus,
   getBlockNumber,
+  getProviderStatus,
   signMessage,
   sendNim,
 } from "../services/nimiq";
@@ -19,6 +20,9 @@ const loading = ref(false);
 const debugStatus = ref("Ready");
 const lastError = ref("");
 const lastTxHash = ref("");
+
+const providerConnected = ref(false);
+const providerNetwork = ref("Unknown");
 
 const message = ref("Hello Nimiq!");
 const signature = ref("");
@@ -89,10 +93,19 @@ function parseBalance(balanceText: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+async function refreshProviderStatus() {
+  const status = await getProviderStatus();
+
+  providerConnected.value = status.connected;
+  providerNetwork.value = status.network;
+}
+
 async function refreshWalletData() {
   if (!account.value) {
     return;
   }
+
+  await refreshProviderStatus();
 
   balance.value = await getBalance(account.value);
   consensus.value = await getConsensus();
@@ -123,7 +136,7 @@ async function connectWallet() {
 
     if (isProviderMissingError(error)) {
       lastError.value =
-        "Nimiq Wallet is not available in this browser. Open this Mini App inside Nimiq Pay.";
+        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
       debugStatus.value = "Open in Nimiq Pay";
     } else {
       lastError.value = getErrorMessage(error);
@@ -170,14 +183,8 @@ async function signWalletMessage() {
   } catch (error) {
     console.error("[NIMIQ] SIGN ERROR:", error);
 
-    if (isProviderMissingError(error)) {
-      lastError.value =
-        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
-      debugStatus.value = "Open in Nimiq Pay";
-    } else {
-      lastError.value = getErrorMessage(error);
-      debugStatus.value = "Sign Failed";
-    }
+    lastError.value = getErrorMessage(error);
+    debugStatus.value = "Sign Failed";
   } finally {
     loading.value = false;
   }
@@ -237,14 +244,8 @@ async function sendTransaction() {
   } catch (error) {
     console.error("[NIMIQ] TRANSACTION ERROR:", error);
 
-    if (isProviderMissingError(error)) {
-      lastError.value =
-        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
-      debugStatus.value = "Open in Nimiq Pay";
-    } else {
-      lastError.value = getErrorMessage(error);
-      debugStatus.value = "Transaction Failed";
-    }
+    lastError.value = getErrorMessage(error);
+    debugStatus.value = "Transaction Failed";
   } finally {
     loading.value = false;
   }
@@ -261,6 +262,9 @@ export function useWallet() {
     debugStatus,
     lastError,
     lastTxHash,
+
+    providerConnected,
+    providerNetwork,
 
     message,
     signature,

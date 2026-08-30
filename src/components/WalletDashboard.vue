@@ -6,16 +6,19 @@ defineProps<{
   block: number;
   loading: boolean;
 
+  debugStatus: string;
+  lastError: string;
+  lastTxHash: string;
+
+  providerConnected: boolean;
+  providerNetwork: string;
+
   message: string;
   signature: string;
   publicKey: string;
 
   recipient: string;
   amount: number;
-
-  debugStatus: string;
-  lastError: string;
-  lastTxHash: string;
 }>();
 
 const emit = defineEmits([
@@ -39,17 +42,49 @@ const emit = defineEmits([
 
   <div v-if="account">
 
-    <div class="status-card">
-      <strong>Status:</strong>
-      {{ debugStatus }}
+    <!-- DEBUG PANEL -->
+    <div class="debug-card">
+      <h2>🔍 Network Debug</h2>
+
+      <div class="debug-row">
+        <span>Provider</span>
+        <strong>
+          {{ providerConnected ? "🟢 Connected" : "🔴 Disconnected" }}
+        </strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Network</span>
+        <strong>{{ providerNetwork }}</strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Consensus</span>
+        <strong>
+          {{ consensus ? "🟢 Established" : "🔴 Syncing" }}
+        </strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Block</span>
+        <strong>{{ block }}</strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Status</span>
+        <strong>{{ debugStatus }}</strong>
+      </div>
     </div>
 
     <div
       v-if="lastError"
       class="error-card"
     >
-      <strong>Error:</strong>
-      {{ lastError }}
+      <strong>⚠️ Error:</strong>
+
+      <p>
+        {{ lastError }}
+      </p>
     </div>
 
     <div class="card">
@@ -157,7 +192,10 @@ const emit = defineEmits([
         {{ loading ? "Sending..." : "🚀 Send NIM" }}
       </button>
 
-      <div v-if="lastTxHash" class="success-card">
+      <div
+        v-if="lastTxHash"
+        class="success-card"
+      >
         <h3>✅ Transaction Sent</h3>
 
         <p class="address">
@@ -170,32 +208,46 @@ const emit = defineEmits([
 </template>
 
 <style scoped>
-.card {
-  background: #1f2937;
+.card,
+.debug-card,
+.error-card,
+.success-card {
   padding: 20px;
   border-radius: 12px;
   margin-top: 20px;
 }
 
-.status-card {
-  background: #374151;
-  padding: 12px;
-  border-radius: 10px;
-  margin-top: 20px;
+.card {
+  background: #1f2937;
+}
+
+.debug-card {
+  background: #172554;
+  border: 1px solid #2563eb;
+}
+
+.debug-card h2 {
+  margin-top: 0;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #374151;
+}
+
+.debug-row:last-child {
+  border-bottom: none;
 }
 
 .error-card {
   background: #7f1d1d;
-  padding: 12px;
-  border-radius: 10px;
-  margin-top: 12px;
 }
 
 .success-card {
   background: #14532d;
-  padding: 12px;
-  border-radius: 10px;
-  margin-top: 16px;
 }
 
 .address {
