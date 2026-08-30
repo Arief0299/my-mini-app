@@ -28,32 +28,63 @@ const recipient = ref("");
 const amount = ref(0);
 
 function getErrorMessage(error: unknown): string {
+  console.error("RAW ERROR:", error);
+
   if (error instanceof Error) {
     return error.message;
   }
 
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "error" in error
-  ) {
-    const providerError = (
-      error as {
-        error?: {
-          message?: unknown;
-        };
-      }
-    ).error;
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const value = error as Record<string, unknown>;
 
     if (
-      providerError &&
-      typeof providerError.message === "string"
+      "error" in value &&
+      typeof value.error === "object" &&
+      value.error !== null
     ) {
-      return providerError.message;
+      const nested = value.error as Record<string, unknown>;
+
+      if (typeof nested.message === "string") {
+        return nested.message;
+      }
+
+      if (typeof nested.type === "string") {
+        return nested.type;
+      }
+    }
+
+    if (typeof value.message === "string") {
+      return value.message;
+    }
+
+    if (typeof value.reason === "string") {
+      return value.reason;
+    }
+
+    if (typeof value.code === "string" || typeof value.code === "number") {
+      return `Provider error (code ${String(value.code)})`;
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Unknown provider error";
     }
   }
 
   return String(error);
+}
+
+function parseBalance(balanceText: string): number {
+  const value = Number(
+    balanceText.replace(" NIM", "").trim()
+  );
+
+  return Number.isFinite(value) ? value : 0;
 }
 
 async function refreshWalletData() {
@@ -67,8 +98,6 @@ async function refreshWalletData() {
 }
 
 async function connectWallet() {
-  console.log("========== CONNECT WALLET ==========");
-
   loading.value = true;
   lastError.value = "";
   debugStatus.value = "Connecting...";
@@ -76,27 +105,17 @@ async function connectWallet() {
   try {
     const accounts = await getAccounts();
 
-    console.log("========== ACCOUNTS ==========");
-    console.log(accounts);
-
     if (!Array.isArray(accounts) || accounts.length === 0) {
       throw new Error("No Nimiq account found");
     }
 
     account.value = accounts[0];
 
-    console.log("SELECTED ACCOUNT:");
-    console.log(account.value);
-
     debugStatus.value = "Loading wallet data...";
 
     await refreshWalletData();
 
     debugStatus.value = "Connected";
-
-    console.log("BALANCE:", balance.value);
-    console.log("CONSENSUS:", consensus.value);
-    console.log("BLOCK:", block.value);
   } catch (error) {
     console.error("CONNECT WALLET ERROR:", error);
 
@@ -147,6 +166,12 @@ async function signWalletMessage() {
 async function sendTransaction() {
   const cleanRecipient = recipient.value.trim();
 
+  if (!account.value) {
+    lastError.value = "Wallet is not connected";
+    debugStatus.value = "Transaction Failed";
+    return;
+  }
+
   if (!cleanRecipient) {
     lastError.value = "Recipient address is required";
     debugStatus.value = "Transaction Failed";
@@ -162,9 +187,17 @@ async function sendTransaction() {
     return;
   }
 
+  const currentBalance = parseBalance(balance.value);
+
+  if (amount.value > currentBalance) {
+    lastError.value = "Insufficient balance";
+    debugStatus.value = "Transaction Failed";
+    return;
+  }
+
   try {
     loading.value = true;
-    debugStatus.value = "Sending...";
+    debugStatus.value = "Waiting for wallet confirmation...";
     lastError.value = "";
     lastTxHash.value = "";
 
@@ -180,9 +213,7 @@ async function sendTransaction() {
     recipient.value = "";
     amount.value = 0;
 
-    if (account.value) {
-      await refreshWalletData();
-    }
+    await refreshWalletData();
   } catch (error) {
     console.error("TRANSACTION ERROR:", error);
 
