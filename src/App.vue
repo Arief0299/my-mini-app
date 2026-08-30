@@ -1,5 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from "vue";
+
 import WalletDashboard from "./components/WalletDashboard.vue";
 import NimCatchGame from "./components/NimCatchGame.vue";
 
@@ -11,6 +12,10 @@ const {
   consensus,
   block,
   loading,
+
+  debugStatus,
+  lastError,
+  lastTxHash,
 
   message,
   signature,
@@ -33,23 +38,34 @@ const page = ref<"wallet" | "game">("wallet");
     <h1>🚀 Nimiq Mini App</h1>
 
     <div class="menu">
-      <button @click="page='wallet'">
+      <button
+        class="menu-button"
+        :class="{ active: page === 'wallet' }"
+        @click="page = 'wallet'"
+      >
         👛 Wallet
       </button>
 
-      <button @click="page='game'">
+      <button
+        class="menu-button"
+        :class="{ active: page === 'game' }"
+        @click="page = 'game'"
+      >
         🎮 Game
       </button>
     </div>
 
     <WalletDashboard
-      v-if="page==='wallet'"
-
+      v-if="page === 'wallet'"
       :account="account"
       :balance="balance"
       :consensus="consensus"
       :block="block"
       :loading="loading"
+
+      :debugStatus="debugStatus"
+      :lastError="lastError"
+      :lastTxHash="lastTxHash"
 
       :message="message"
       :signature="signature"
@@ -75,36 +91,37 @@ const page = ref<"wallet" | "game">("wallet");
 </template>
 
 <style>
-body{
-  margin:0;
-  background:#111827;
-  color:white;
-  font-family:Arial,Helvetica,sans-serif;
+body {
+  margin: 0;
+  background: #111827;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.container{
-  max-width:760px;
-  margin:auto;
-  padding:30px;
+.container {
+  max-width: 760px;
+  margin: auto;
+  padding: 30px;
 }
 
-.menu{
-  display:flex;
-  gap:12px;
-  margin-bottom:20px;
+.menu {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.menu button{
-  flex:1;
+.menu-button {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  background: #374151;
+  color: white;
+  font-size: 16px;
 }
 
-button{
-  border:none;
-  border-radius:10px;
-  padding:12px;
-  cursor:pointer;
-  background:#16a34a;
-  color:white;
-  font-size:16px;
+.menu-button.active {
+  background: #16a34a;
 }
 </style>

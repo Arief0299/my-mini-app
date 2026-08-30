@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 defineProps<{
   account: string;
   balance: string;
@@ -12,6 +12,10 @@ defineProps<{
 
   recipient: string;
   amount: number;
+
+  debugStatus: string;
+  lastError: string;
+  lastTxHash: string;
 }>();
 
 const emit = defineEmits([
@@ -26,13 +30,27 @@ const emit = defineEmits([
 
 <template>
   <button
+    class="primary-button"
     @click="emit('connect')"
     :disabled="loading"
   >
-    {{ loading ? "Connecting..." : "Connect Wallet" }}
+    {{ loading ? "Processing..." : "Connect Wallet" }}
   </button>
 
   <div v-if="account">
+
+    <div class="status-card">
+      <strong>Status:</strong>
+      {{ debugStatus }}
+    </div>
+
+    <div
+      v-if="lastError"
+      class="error-card"
+    >
+      <strong>Error:</strong>
+      {{ lastError }}
+    </div>
 
     <div class="card">
       <h2>💰 Balance</h2>
@@ -62,17 +80,26 @@ const emit = defineEmits([
     </div>
 
     <div class="card">
-
       <h2>📝 Sign Message</h2>
 
       <input
         :value="message"
-        @input="emit('update:message', ($event.target as HTMLInputElement).value)"
-        placeholder="Message"
+        @input="
+          emit(
+            'update:message',
+            ($event.target as HTMLInputElement).value
+          )
+        "
+        placeholder="Enter a message"
+        :disabled="loading"
       />
 
-      <button @click="emit('sign')">
-        Sign Message
+      <button
+        class="secondary-button"
+        @click="emit('sign')"
+        :disabled="loading || !message.trim()"
+      >
+        {{ loading ? "Signing..." : "Sign Message" }}
       </button>
 
       <div v-if="publicKey">
@@ -90,30 +117,53 @@ const emit = defineEmits([
           {{ signature }}
         </p>
       </div>
-
     </div>
 
     <div class="card">
-
       <h2>💸 Send NIM</h2>
 
       <input
         :value="recipient"
-        @input="emit('update:recipient', ($event.target as HTMLInputElement).value)"
+        @input="
+          emit(
+            'update:recipient',
+            ($event.target as HTMLInputElement).value
+          )
+        "
         placeholder="Recipient Address"
+        :disabled="loading"
       />
 
       <input
         :value="amount"
-        @input="emit('update:amount', Number(($event.target as HTMLInputElement).value))"
+        @input="
+          emit(
+            'update:amount',
+            Number(($event.target as HTMLInputElement).value)
+          )
+        "
         type="number"
-        placeholder="Amount"
+        min="0"
+        step="0.00001"
+        placeholder="Amount in NIM"
+        :disabled="loading"
       />
 
-      <button @click="emit('send')">
-        🚀 Send NIM
+      <button
+        class="send-button"
+        @click="emit('send')"
+        :disabled="loading || !recipient.trim() || amount <= 0"
+      >
+        {{ loading ? "Sending..." : "🚀 Send NIM" }}
       </button>
 
+      <div v-if="lastTxHash" class="success-card">
+        <h3>✅ Transaction Sent</h3>
+
+        <p class="address">
+          {{ lastTxHash }}
+        </p>
+      </div>
     </div>
 
   </div>
@@ -127,6 +177,27 @@ const emit = defineEmits([
   margin-top: 20px;
 }
 
+.status-card {
+  background: #374151;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.error-card {
+  background: #7f1d1d;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.success-card {
+  background: #14532d;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 16px;
+}
+
 .address {
   word-break: break-all;
 }
@@ -137,9 +208,26 @@ button {
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #16a34a;
   color: white;
+  font-size: 16px;
   cursor: pointer;
+}
+
+.primary-button {
+  background: #16a34a;
+}
+
+.secondary-button {
+  background: #2563eb;
+}
+
+.send-button {
+  background: #16a34a;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 input {
@@ -147,5 +235,14 @@ input {
   margin-top: 12px;
   padding: 12px;
   box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  background: #111827;
+  color: white;
+  font-size: 16px;
+}
+
+input:disabled {
+  opacity: 0.6;
 }
 </style>
