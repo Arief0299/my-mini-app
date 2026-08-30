@@ -31,6 +31,8 @@ const publicKey = ref("");
 const recipient = ref("");
 const amount = ref(0);
 
+let consensusTimer: ReturnType<typeof setInterval> | null = null;
+
 function getErrorMessage(error: unknown): string {
   console.error("[NIMIQ] RAW ERROR:", error);
 
@@ -75,16 +77,6 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function isProviderMissingError(error: unknown): boolean {
-  const message = getErrorMessage(error).toLowerCase();
-
-  return (
-    message.includes("provider was not injected") ||
-    message.includes("not running inside a nimiq app") ||
-    message.includes("nimiq provider")
-  );
-}
-
 function parseBalance(balanceText: string): number {
   const value = Number(
     balanceText.replace(" NIM", "").trim()
@@ -100,6 +92,56 @@ async function refreshProviderStatus() {
   providerNetwork.value = status.network;
 }
 
+async function refreshConsensus() {
+  try {
+    const result = await getConsensus();
+
+    consensus.value = result;
+
+    console.log(
+      "[NIMIQ] Consensus polling =",
+      result
+    );
+
+    if (result) {
+      debugStatus.value = "Consensus Established";
+
+      stopConsensusPolling();
+    }
+  } catch (error) {
+    console.error(
+      "[NIMIQ] Consensus check error:",
+      error
+    );
+  }
+}
+
+function startConsensusPolling() {
+  stopConsensusPolling();
+
+  console.log(
+    "[NIMIQ] Starting consensus polling..."
+  );
+
+  consensusTimer = setInterval(
+    () => {
+      void refreshConsensus();
+    },
+    3000
+  );
+}
+
+function stopConsensusPolling() {
+  if (consensusTimer !== null) {
+    clearInterval(consensusTimer);
+    consensusTimer = null;
+
+    console.log(
+      "[NIMIQ] Consensus polling stopped"
+    );
+  }
+}
+
 async function refreshWalletData() {
   if (!account.value) {
     return;
@@ -108,7 +150,9 @@ async function refreshWalletData() {
   await refreshProviderStatus();
 
   balance.value = await getBalance(account.value);
-  consensus.value = await getConsensus();
+
+  await refreshConsensus();
+
   block.value = await getBlockNumber();
 }
 
@@ -126,22 +170,33 @@ async function connectWallet() {
 
     account.value = accounts[0];
 
-    debugStatus.value = "Loading wallet data...";
+    debugStatus.value =
+      "Loading wallet data...";
 
     await refreshWalletData();
 
-    debugStatus.value = "Connected";
-  } catch (error) {
-    console.error("[NIMIQ] CONNECT ERROR:", error);
+    if (consensus.value) {
+      debugStatus.value =
+        "Consensus Established";
 
-    if (isProviderMissingError(error)) {
-      lastError.value =
-        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
-      debugStatus.value = "Open in Nimiq Pay";
+      stopConsensusPolling();
     } else {
-      lastError.value = getErrorMessage(error);
-      debugStatus.value = "Connect Failed";
+      debugStatus.value =
+        "Waiting for Consensus...";
+
+      startConsensusPolling();
     }
+  } catch (error) {
+    console.error(
+      "[NIMIQ] CONNECT ERROR:",
+      error
+    );
+
+    lastError.value =
+      getErrorMessage(error);
+
+    debugStatus.value =
+      "Connect Failed";
   } finally {
     loading.value = false;
   }
@@ -149,14 +204,22 @@ async function connectWallet() {
 
 async function signWalletMessage() {
   if (!account.value) {
-    lastError.value = "Connect your Nimiq wallet first";
-    debugStatus.value = "Sign Failed";
+    lastError.value =
+      "Connect your Nimiq wallet first";
+
+    debugStatus.value =
+      "Sign Failed";
+
     return;
   }
 
   if (!message.value.trim()) {
-    lastError.value = "Message cannot be empty";
-    debugStatus.value = "Sign Failed";
+    lastError.value =
+      "Message cannot be empty";
+
+    debugStatus.value =
+      "Sign Failed";
+
     return;
   }
 
@@ -165,7 +228,8 @@ async function signWalletMessage() {
     debugStatus.value = "Signing...";
     lastError.value = "";
 
-    const result = await signMessage(message.value);
+    const result =
+      await signMessage(message.value);
 
     if (
       typeof result !== "object" ||
@@ -173,35 +237,55 @@ async function signWalletMessage() {
       !("publicKey" in result) ||
       !("signature" in result)
     ) {
-      throw new Error("Invalid signing response");
+      throw new Error(
+        "Invalid signing response"
+      );
     }
 
-    publicKey.value = String(result.publicKey);
-    signature.value = String(result.signature);
+    publicKey.value =
+      String(result.publicKey);
+
+    signature.value =
+      String(result.signature);
 
     debugStatus.value = "Signed";
   } catch (error) {
-    console.error("[NIMIQ] SIGN ERROR:", error);
+    console.error(
+      "[NIMIQ] SIGN ERROR:",
+      error
+    );
 
-    lastError.value = getErrorMessage(error);
-    debugStatus.value = "Sign Failed";
+    lastError.value =
+      getErrorMessage(error);
+
+    debugStatus.value =
+      "Sign Failed";
   } finally {
     loading.value = false;
   }
 }
 
 async function sendTransaction() {
-  const cleanRecipient = recipient.value.trim();
+  const cleanRecipient =
+    recipient.value.trim();
 
   if (!account.value) {
-    lastError.value = "Wallet is not connected";
-    debugStatus.value = "Transaction Failed";
+    lastError.value =
+      "Wallet is not connected";
+
+    debugStatus.value =
+      "Transaction Failed";
+
     return;
   }
 
   if (!cleanRecipient) {
-    lastError.value = "Recipient address is required";
-    debugStatus.value = "Transaction Failed";
+    lastError.value =
+      "Recipient address is required";
+
+    debugStatus.value =
+      "Transaction Failed";
+
     return;
   }
 
@@ -209,22 +293,34 @@ async function sendTransaction() {
     !Number.isFinite(amount.value) ||
     amount.value <= 0
   ) {
-    lastError.value = "Amount must be greater than 0";
-    debugStatus.value = "Transaction Failed";
+    lastError.value =
+      "Amount must be greater than 0";
+
+    debugStatus.value =
+      "Transaction Failed";
+
     return;
   }
 
-  const currentBalance = parseBalance(balance.value);
+  const currentBalance =
+    parseBalance(balance.value);
 
   if (amount.value > currentBalance) {
-    lastError.value = "Insufficient balance";
-    debugStatus.value = "Transaction Failed";
+    lastError.value =
+      "Insufficient balance";
+
+    debugStatus.value =
+      "Transaction Failed";
+
     return;
   }
 
   try {
     loading.value = true;
-    debugStatus.value = "Waiting for wallet confirmation...";
+
+    debugStatus.value =
+      "Waiting for wallet confirmation...";
+
     lastError.value = "";
     lastTxHash.value = "";
 
@@ -235,17 +331,28 @@ async function sendTransaction() {
 
     lastTxHash.value = result;
 
-    debugStatus.value = "Transaction Sent";
+    debugStatus.value =
+      "Transaction Sent";
 
     recipient.value = "";
     amount.value = 0;
 
     await refreshWalletData();
-  } catch (error) {
-    console.error("[NIMIQ] TRANSACTION ERROR:", error);
 
-    lastError.value = getErrorMessage(error);
-    debugStatus.value = "Transaction Failed";
+    if (!consensus.value) {
+      startConsensusPolling();
+    }
+  } catch (error) {
+    console.error(
+      "[NIMIQ] TRANSACTION ERROR:",
+      error
+    );
+
+    lastError.value =
+      getErrorMessage(error);
+
+    debugStatus.value =
+      "Transaction Failed";
   } finally {
     loading.value = false;
   }
