@@ -40,6 +40,7 @@ function getErrorMessage(value: ErrorResponse): string {
 
 export async function getAccounts(): Promise<string[]> {
   const nimiq = await getProvider();
+
   const result = await nimiq.listAccounts();
 
   if (isErrorResponse(result)) {
@@ -51,16 +52,29 @@ export async function getAccounts(): Promise<string[]> {
 
 export async function getConsensus(): Promise<boolean> {
   const nimiq = await getProvider();
-  return await nimiq.isConsensusEstablished();
+
+  const result = await nimiq.isConsensusEstablished();
+
+  console.log("[NIMIQ] consensus =", result);
+  console.log("[NIMIQ] connected =", nimiq.connected);
+  console.log("[NIMIQ] network =", nimiq.getNetwork());
+
+  return result;
 }
 
 export async function getBlockNumber(): Promise<number> {
   const nimiq = await getProvider();
-  return await nimiq.getBlockNumber();
+
+  const result = await nimiq.getBlockNumber();
+
+  console.log("[NIMIQ] block =", result);
+
+  return result;
 }
 
 export async function signMessage(message: string) {
   const nimiq = await getProvider();
+
   const result = await nimiq.sign(message);
 
   if (isErrorResponse(result)) {
@@ -84,7 +98,6 @@ export async function sendNim(
     throw new Error("Amount must be greater than 0");
   }
 
-  // 1 NIM = 100,000 Lunas
   const luna = Math.round(amount * 100_000);
 
   if (!Number.isSafeInteger(luna) || luna <= 0) {
