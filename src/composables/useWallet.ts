@@ -28,7 +28,7 @@ const recipient = ref("");
 const amount = ref(0);
 
 function getErrorMessage(error: unknown): string {
-  console.error("RAW ERROR:", error);
+  console.error("[NIMIQ] RAW ERROR:", error);
 
   if (error instanceof Error) {
     return error.message;
@@ -61,14 +61,6 @@ function getErrorMessage(error: unknown): string {
       return value.message;
     }
 
-    if (typeof value.reason === "string") {
-      return value.reason;
-    }
-
-    if (typeof value.code === "string" || typeof value.code === "number") {
-      return `Provider error (code ${String(value.code)})`;
-    }
-
     try {
       return JSON.stringify(error);
     } catch {
@@ -77,6 +69,16 @@ function getErrorMessage(error: unknown): string {
   }
 
   return String(error);
+}
+
+function isProviderMissingError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+
+  return (
+    message.includes("provider was not injected") ||
+    message.includes("not running inside a nimiq app") ||
+    message.includes("nimiq provider")
+  );
 }
 
 function parseBalance(balanceText: string): number {
@@ -117,16 +119,28 @@ async function connectWallet() {
 
     debugStatus.value = "Connected";
   } catch (error) {
-    console.error("CONNECT WALLET ERROR:", error);
+    console.error("[NIMIQ] CONNECT ERROR:", error);
 
-    lastError.value = getErrorMessage(error);
-    debugStatus.value = "Connect Failed";
+    if (isProviderMissingError(error)) {
+      lastError.value =
+        "Nimiq Wallet is not available in this browser. Open this Mini App inside Nimiq Pay.";
+      debugStatus.value = "Open in Nimiq Pay";
+    } else {
+      lastError.value = getErrorMessage(error);
+      debugStatus.value = "Connect Failed";
+    }
   } finally {
     loading.value = false;
   }
 }
 
 async function signWalletMessage() {
+  if (!account.value) {
+    lastError.value = "Connect your Nimiq wallet first";
+    debugStatus.value = "Sign Failed";
+    return;
+  }
+
   if (!message.value.trim()) {
     lastError.value = "Message cannot be empty";
     debugStatus.value = "Sign Failed";
@@ -154,10 +168,16 @@ async function signWalletMessage() {
 
     debugStatus.value = "Signed";
   } catch (error) {
-    console.error("SIGN ERROR:", error);
+    console.error("[NIMIQ] SIGN ERROR:", error);
 
-    lastError.value = getErrorMessage(error);
-    debugStatus.value = "Sign Failed";
+    if (isProviderMissingError(error)) {
+      lastError.value =
+        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
+      debugStatus.value = "Open in Nimiq Pay";
+    } else {
+      lastError.value = getErrorMessage(error);
+      debugStatus.value = "Sign Failed";
+    }
   } finally {
     loading.value = false;
   }
@@ -215,10 +235,16 @@ async function sendTransaction() {
 
     await refreshWalletData();
   } catch (error) {
-    console.error("TRANSACTION ERROR:", error);
+    console.error("[NIMIQ] TRANSACTION ERROR:", error);
 
-    lastError.value = getErrorMessage(error);
-    debugStatus.value = "Transaction Failed";
+    if (isProviderMissingError(error)) {
+      lastError.value =
+        "Nimiq Wallet is not available. Open this Mini App inside Nimiq Pay.";
+      debugStatus.value = "Open in Nimiq Pay";
+    } else {
+      lastError.value = getErrorMessage(error);
+      debugStatus.value = "Transaction Failed";
+    }
   } finally {
     loading.value = false;
   }
