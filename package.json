@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@nimiq/mini-app-sdk": "^0.1.0",
     "vue": "^3.5.39"
   },
   "devDependencies": {

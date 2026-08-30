@@ -27,12 +27,43 @@ const publicKey = ref("");
 const recipient = ref("");
 const amount = ref(0);
 
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) {
-    return err.message;
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
   }
 
-  return String(err);
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "error" in error
+  ) {
+    const providerError = (
+      error as {
+        error?: {
+          message?: unknown;
+        };
+      }
+    ).error;
+
+    if (
+      providerError &&
+      typeof providerError.message === "string"
+    ) {
+      return providerError.message;
+    }
+  }
+
+  return String(error);
+}
+
+async function refreshWalletData() {
+  if (!account.value) {
+    return;
+  }
+
+  balance.value = await getBalance(account.value);
+  consensus.value = await getConsensus();
+  block.value = await getBlockNumber();
 }
 
 async function connectWallet() {
@@ -52,27 +83,24 @@ async function connectWallet() {
       throw new Error("No Nimiq account found");
     }
 
-    account.value = String(accounts[0]);
+    account.value = accounts[0];
 
     console.log("SELECTED ACCOUNT:");
     console.log(account.value);
 
-    debugStatus.value = "Wallet connected";
+    debugStatus.value = "Loading wallet data...";
 
-    console.log("========== GET BALANCE ==========");
-
-    balance.value = await getBalance(account.value);
-
-    console.log("BALANCE:", balance.value);
-
-    consensus.value = await getConsensus();
-    block.value = await getBlockNumber();
+    await refreshWalletData();
 
     debugStatus.value = "Connected";
-  } catch (err) {
-    console.error("CONNECT WALLET ERROR:", err);
 
-    lastError.value = getErrorMessage(err);
+    console.log("BALANCE:", balance.value);
+    console.log("CONSENSUS:", consensus.value);
+    console.log("BLOCK:", block.value);
+  } catch (error) {
+    console.error("CONNECT WALLET ERROR:", error);
+
+    lastError.value = getErrorMessage(error);
     debugStatus.value = "Connect Failed";
   } finally {
     loading.value = false;
@@ -80,58 +108,88 @@ async function connectWallet() {
 }
 
 async function signWalletMessage() {
+  if (!message.value.trim()) {
+    lastError.value = "Message cannot be empty";
+    debugStatus.value = "Sign Failed";
+    return;
+  }
+
   try {
+    loading.value = true;
     debugStatus.value = "Signing...";
     lastError.value = "";
 
     const result = await signMessage(message.value);
 
     if (
-      typeof result === "object" &&
-      result !== null &&
-      "publicKey" in result &&
-      "signature" in result
+      typeof result !== "object" ||
+      result === null ||
+      !("publicKey" in result) ||
+      !("signature" in result)
     ) {
-      publicKey.value = String(result.publicKey);
-      signature.value = String(result.signature);
-
-      debugStatus.value = "Signed";
-    } else {
-      throw new Error("Signing failed");
+      throw new Error("Invalid signing response");
     }
-  } catch (err) {
-    console.error("SIGN ERROR:", err);
 
-    lastError.value = getErrorMessage(err);
+    publicKey.value = String(result.publicKey);
+    signature.value = String(result.signature);
+
+    debugStatus.value = "Signed";
+  } catch (error) {
+    console.error("SIGN ERROR:", error);
+
+    lastError.value = getErrorMessage(error);
     debugStatus.value = "Sign Failed";
+  } finally {
+    loading.value = false;
   }
 }
 
 async function sendTransaction() {
+  const cleanRecipient = recipient.value.trim();
+
+  if (!cleanRecipient) {
+    lastError.value = "Recipient address is required";
+    debugStatus.value = "Transaction Failed";
+    return;
+  }
+
+  if (
+    !Number.isFinite(amount.value) ||
+    amount.value <= 0
+  ) {
+    lastError.value = "Amount must be greater than 0";
+    debugStatus.value = "Transaction Failed";
+    return;
+  }
+
   try {
+    loading.value = true;
     debugStatus.value = "Sending...";
     lastError.value = "";
+    lastTxHash.value = "";
 
     const result = await sendNim(
-      recipient.value,
+      cleanRecipient,
       amount.value
     );
 
-    lastTxHash.value = String(result);
+    lastTxHash.value = result;
 
     debugStatus.value = "Transaction Sent";
 
-    if (account.value) {
-      balance.value = await getBalance(account.value);
-    }
-
     recipient.value = "";
     amount.value = 0;
-  } catch (err) {
-    console.error("TRANSACTION ERROR:", err);
 
-    lastError.value = getErrorMessage(err);
+    if (account.value) {
+      await refreshWalletData();
+    }
+  } catch (error) {
+    console.error("TRANSACTION ERROR:", error);
+
+    lastError.value = getErrorMessage(error);
     debugStatus.value = "Transaction Failed";
+  } finally {
+    loading.value = false;
   }
 }
 
