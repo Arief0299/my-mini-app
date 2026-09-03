@@ -44,27 +44,27 @@ function handleMove(event: PointerEvent) {
 
     <div class="hud">
 
-      <div class="item">
+      <div class="hud-item">
         <span>Score</span>
         <strong>{{ score }}</strong>
       </div>
 
-      <div class="item">
+      <div class="hud-item">
         <span>High</span>
         <strong>{{ highScore }}</strong>
       </div>
 
-      <div class="item">
+      <div class="hud-item">
         <span>Time</span>
         <strong>{{ timeLeft }}</strong>
       </div>
 
-      <div class="item">
+      <div class="hud-item">
         <span>Level</span>
         <strong>{{ difficultyLevel }}</strong>
       </div>
 
-      <div class="item">
+      <div class="hud-item combo">
         <span>Combo</span>
         <strong>x{{ multiplier }}</strong>
       </div>
@@ -118,56 +118,120 @@ function handleMove(event: PointerEvent) {
 
 .hud {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  max-width: 430px;
   margin-bottom: 12px;
 }
 
-.item {
-  min-width: 70px;
-  padding: 8px 12px;
+.hud-item {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 6px;
   border-radius: 10px;
-  background: #222;
+
+  background: rgba(30, 30, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
   color: white;
   text-align: center;
+
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.item span {
+.hud-item span {
   display: block;
-  font-size: 12px;
+  margin-bottom: 2px;
+  font-size: 10px;
+  line-height: 1.2;
   opacity: 0.7;
 }
 
-.item strong {
+.hud-item strong {
   display: block;
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.combo strong {
+  color: #ffd84d;
 }
 
 .stage {
   position: relative;
   overflow: hidden;
-  background: #111;
+
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(255, 190, 0, 0.06),
+      transparent 45%
+    ),
+    #101010;
+
   border-radius: 12px;
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+
   touch-action: none;
+  user-select: none;
 }
 
 .floating {
   position: absolute;
-  font-weight: bold;
+  z-index: 20;
+
+  font-size: 17px;
+  font-weight: 800;
+
   pointer-events: none;
-  animation: float 0.8s linear forwards;
+  user-select: none;
+
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.8);
+
+  animation: float 0.8s ease-out forwards;
 }
 
 @keyframes float {
-  from {
+  0% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 
-  to {
+  100% {
     opacity: 0;
-    transform: translateY(-40px);
+    transform: translateY(-42px) scale(1.15);
+  }
+}
+
+@media (max-width: 480px) {
+  .hud {
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+
+  .hud-item {
+    padding: 7px 3px;
+    border-radius: 9px;
+  }
+
+  .hud-item span {
+    font-size: 9px;
+  }
+
+  .hud-item strong {
+    font-size: 14px;
+  }
+
+  .stage {
+    border-radius: 11px;
   }
 }
 </style>

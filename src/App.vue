@@ -20,6 +20,9 @@ const {
   providerConnected,
   providerNetwork,
 
+  consensusChecks,
+  lastConsensusCheck,
+
   message,
   signature,
   publicKey,
@@ -72,6 +75,9 @@ const page = ref<"wallet" | "game">("wallet");
 
       :providerConnected="providerConnected"
       :providerNetwork="providerNetwork"
+
+      :consensusChecks="consensusChecks"
+      :lastConsensusCheck="lastConsensusCheck"
 
       :message="message"
       :signature="signature"

@@ -13,6 +13,9 @@ defineProps<{
   providerConnected: boolean;
   providerNetwork: string;
 
+  consensusChecks: number;
+  lastConsensusCheck: string;
+
   message: string;
   signature: string;
   publicKey: string;
@@ -42,7 +45,6 @@ const emit = defineEmits([
 
   <div v-if="account">
 
-    <!-- DEBUG PANEL -->
     <div class="debug-card">
       <h2>🔍 Network Debug</h2>
 
@@ -73,6 +75,16 @@ const emit = defineEmits([
       <div class="debug-row">
         <span>Status</span>
         <strong>{{ debugStatus }}</strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Consensus Checks</span>
+        <strong>{{ consensusChecks }}</strong>
+      </div>
+
+      <div class="debug-row">
+        <span>Last Check</span>
+        <strong>{{ lastConsensusCheck }}</strong>
       </div>
     </div>
 

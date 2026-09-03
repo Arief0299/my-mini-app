@@ -36,121 +36,131 @@ const cssClass = computed(() => {
 
 <template>
   <div
-    class="item"
+    class="falling-item"
     :class="cssClass"
     :style="{
       left: x + 'px',
       top: y + 'px'
     }"
   >
-    {{ icon }}
+    <span class="icon">
+      {{ icon }}
+    </span>
   </div>
 </template>
 
 <style scoped>
+.falling-item {
+  position: absolute;
 
-.item{
+  width: 46px;
+  height: 46px;
 
-position:absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-width:40px;
-height:40px;
+  pointer-events: none;
+  user-select: none;
 
-display:flex;
-align-items:center;
-justify-content:center;
-
-font-size:34px;
-
-pointer-events:none;
-
-user-select:none;
-
-animation:spin 2s linear infinite;
-
+  z-index: 5;
 }
 
-.coin{
+.icon {
+  display: block;
 
-filter:drop-shadow(0 0 6px gold);
+  font-size: 31px;
+  line-height: 1;
 
+  transform-origin: center;
+
+  will-change: transform;
 }
 
-.gold{
+/* =========================
+   NORMAL COIN
+========================= */
 
-font-size:38px;
+.coin .icon {
+  animation: coinFloat 1.8s ease-in-out infinite;
 
-filter:
-drop-shadow(0 0 12px yellow)
-drop-shadow(0 0 18px orange);
-
-animation:
-spin 1s linear infinite,
-glow 1s ease-in-out infinite alternate;
-
+  filter:
+    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 5px rgba(255, 205, 40, 0.55));
 }
 
-.bomb{
+/* =========================
+   GOLD STAR
+========================= */
 
-font-size:38px;
-
-animation:
-pulse .5s infinite;
-
+.gold {
+  width: 50px;
+  height: 50px;
 }
 
-@keyframes spin{
+.gold .icon {
+  font-size: 37px;
 
-from{
+  animation: starPulse 0.9s ease-in-out infinite alternate;
 
-transform:rotate(0deg);
-
+  filter:
+    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 6px rgba(255, 215, 0, 0.9))
+    drop-shadow(0 0 12px rgba(255, 175, 0, 0.55));
 }
 
-to{
+/* =========================
+   BOMB
+========================= */
 
-transform:rotate(360deg);
+.bomb .icon {
+  font-size: 34px;
 
+  animation: bombPulse 0.55s ease-in-out infinite;
+
+  filter:
+    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.8));
 }
 
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes coinFloat {
+  0% {
+    transform: translateY(0) rotate(-4deg);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(4deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
 }
 
-@keyframes glow{
+@keyframes starPulse {
+  from {
+    transform: scale(0.94) rotate(-4deg);
+  }
 
-from{
-
-transform:scale(1);
-
+  to {
+    transform: scale(1.08) rotate(4deg);
+  }
 }
 
-to{
+@keyframes bombPulse {
+  0% {
+    transform: scale(1);
+  }
 
-transform:scale(1.25);
+  50% {
+    transform: scale(1.12);
+  }
 
+  100% {
+    transform: scale(1);
+  }
 }
-
-}
-
-@keyframes pulse{
-
-0%{
-
-transform:scale(1);
-
-}
-
-50%{
-
-transform:scale(1.18);
-
-}
-
-100%{
-
-transform:scale(1);
-
-}
-
-}
-
 </style>
