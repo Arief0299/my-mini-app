@@ -29,6 +29,8 @@ export function useGame() {
   const coins = ref<Coin[]>([]);
 
   const isRunning = ref(false);
+  const isGameStarted = ref(false);
+  const isGameOver = ref(false);
 
   let gameLoop: number | null = null;
 
@@ -170,6 +172,9 @@ export function useGame() {
 
   function gameOver(): void {
     stop();
+
+    isGameOver.value = true;
+    isGameStarted.value = false;
   }
 
   function start(): void {
@@ -184,9 +189,14 @@ export function useGame() {
 
     coins.value = [];
 
-    rebuildCoins();
+    basketX.value =
+      (STAGE_WIDTH - 80) / 2;
 
+    isGameOver.value = false;
+    isGameStarted.value = true;
     isRunning.value = true;
+
+    rebuildCoins();
 
     timer.start(() => {
       gameOver();
@@ -224,6 +234,8 @@ export function useGame() {
     coins,
 
     isRunning,
+    isGameStarted,
+    isGameOver,
 
     combo: combo.combo,
     multiplier: combo.multiplier,
@@ -239,9 +251,6 @@ export function useGame() {
 
     timeLeft:
       timer.timeLeft,
-
-    isGameOver:
-      timer.gameOver,
 
     moveBasket,
 
