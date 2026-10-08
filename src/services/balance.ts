@@ -1,6 +1,12 @@
-﻿import { rpc } from "./rpc";
-
 const LUNA_PER_NIM = 100000;
+
+type AccountResponse = {
+  address?: string;
+  balance?: number | string;
+  data?: {
+    balance?: number | string;
+  };
+};
 
 export async function getBalance(address: string): Promise<string> {
   console.log("========== BALANCE CHECK ==========");
@@ -11,10 +17,7 @@ export async function getBalance(address: string): Promise<string> {
   }
 
   try {
-    const result = await rpc(
-      "getAccountByAddress",
-      [address]
-    );
+    const result = await rpc("getAccountByAddress", [address]);
 
     console.log("ACCOUNT RPC RESULT:");
     console.log(result);
@@ -24,13 +27,12 @@ export async function getBalance(address: string): Promise<string> {
       return "0.00000 NIM";
     }
 
-    const account = result as {
-      data?: {
-        balance?: number | string;
-      };
-    };
+    const account = result as AccountResponse;
 
-    const rawBalance = account.data?.balance;
+    // Nimiq's getAccountByAddress returns Account.balance directly.
+    // Keep data.balance as a compatibility fallback for wrapped RPC responses.
+    const rawBalance =
+      account.balance ?? account.data?.balance;
 
     console.log("RAW BALANCE:", rawBalance);
 

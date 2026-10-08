@@ -21,13 +21,19 @@ export async function rpc(
     }),
   });
 
+  if (!response.ok) {
+    throw new Error(
+      `Nimiq RPC request failed: HTTP ${response.status}`
+    );
+  }
+
   const json = await response.json();
 
   console.log("========== RPC RESPONSE ==========");
   console.log(json);
 
   if (json.error) {
-    throw new Error(json.error.message);
+    throw new Error(json.error.message ?? "Nimiq RPC error");
   }
 
   return json.result;
